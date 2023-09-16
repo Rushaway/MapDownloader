@@ -5,8 +5,8 @@
 			"name": "NiDE Zombie Escape",
 			"mapList": "https://gist.githubusercontent.com/cmer81/996c11b1b9f9371ce58ee6bd4c04bf2f/raw/b771423a20fbdbd4d013d6496a738776fb18b53c/maplist.csv",
 			"fastDL": "https://fastdl.nide.gg/css_ze/maps/",
-			"appID": "232330",
-			"mapsDirectory": "\\cstrike\\maps\\"
+			"appID": "240",
+			"mapsDirectory": "\\cstrike\\download\\maps\\"
 		}
 	]
 }

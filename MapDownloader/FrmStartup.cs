@@ -31,7 +31,7 @@ namespace MapDownloader
 
 			try
 			{
-				json = client.DownloadString("https://raw.githubusercontent.com/Vauff/MapDownloader/master/servers.json");
+				json = client.DownloadString("https://raw.githubusercontent.com/cmer81/MapDownloader/master/servers.json");
 			}
 			catch (WebException)
 			{
