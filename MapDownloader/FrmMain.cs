@@ -99,11 +99,21 @@ namespace MapDownloader
 						string fileName = ExtractFileNameFromHtmlLine(line);
 						if (!string.IsNullOrEmpty(fileName))
 						{
-							bspFiles.Add(fileName);
+							// Vérifier que c'est bien un fichier .bsp.bz2
+							if (fileName.EndsWith(".bsp.bz2"))
+							{
+								bspFiles.Add(fileName);
+							}
+							else
+							{
+								// Si le nom ne se termine pas par .bsp.bz2, l'ajouter
+								bspFiles.Add(fileName + ".bsp.bz2");
+							}
 						}
 					}
 				}
 				
+				// Afficher les fichiers trouvés pour le débogage
 				txtOutput.AppendText("Total .bsp.bz2 files found in fastDL: " + bspFiles.Count);
 				
 				// Vérifier quels fichiers doivent être téléchargés
@@ -146,35 +156,49 @@ namespace MapDownloader
 			}
 		}
 
-		// Fonction pour extraire le nom de fichier d'une ligne HTML
 		private string ExtractFileNameFromHtmlLine(string line)
 		{
 			// Rechercher les fichiers .bsp.bz2
 			int bspIndex = line.IndexOf(".bsp.bz2");
 			if (bspIndex > 0)
 			{
-				// Trouver le début du nom de fichier
-				int startIndex = line.LastIndexOf('>', bspIndex);
-				if (startIndex >= 0)
+				// Vérifier si la ligne contient des balises HTML
+				if (line.Contains("href="))
 				{
-					startIndex++; // Avancer après le '>'
+					// Format avec balise HTML
+					int hrefIndex = line.IndexOf("href=");
+					int startQuote = line.IndexOf('"', hrefIndex);
+					int endQuote = line.IndexOf('"', startQuote + 1);
+					
+					if (startQuote >= 0 && endQuote >= 0)
+					{
+						string href = line.Substring(startQuote + 1, endQuote - startQuote - 1);
+						// Si l'href contient le chemin complet, extraire juste le nom du fichier
+						if (href.Contains("/"))
+						{
+							href = href.Substring(href.LastIndexOf('/') + 1);
+						}
+						return href;
+					}
 				}
 				else
 				{
-					// Si pas de balise HTML, chercher un espace ou une tabulation
-					startIndex = 0;
-					for (int i = 0; i < bspIndex; i++)
+					// Format sans balise HTML (comme dans votre exemple)
+					// Trouver le début du nom de fichier en cherchant le dernier espace avant .bsp.bz2
+					int startIndex = 0;
+					for (int i = bspIndex - 1; i >= 0; i--)
 					{
 						if (char.IsWhiteSpace(line[i]))
 						{
 							startIndex = i + 1;
+							break;
 						}
 					}
+					
+					// Extraire le nom du fichier
+					string fileName = line.Substring(startIndex, bspIndex + 8 - startIndex).Trim();
+					return fileName;
 				}
-				
-				// Extraire le nom du fichier
-				string fileName = line.Substring(startIndex, bspIndex + 8 - startIndex).Trim();
-				return fileName;
 			}
 			
 			return null;
@@ -192,6 +216,13 @@ namespace MapDownloader
 			if (queue.Count > 0)
 			{
 				currentMap = queue.Dequeue();
+				
+				// Nettoyer le nom de la carte de tout préfixe HTML
+				if (currentMap.Contains("href="))
+				{
+					currentMap = currentMap.Substring(currentMap.IndexOf("href=") + 6);
+				}
+				
 				currentCompressed = true; // Toujours compressé pour les .bsp.bz2
 				
 				txtOutput.AppendText(Environment.NewLine + "Downloading " + currentMap);
