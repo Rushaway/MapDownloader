@@ -107,7 +107,6 @@ namespace MapDownloader
 				}
 
 				List<string> uniqueBspFiles = new List<string>(bspFiles);
-				txtOutput.AppendText(Environment.NewLine + "Total unique .bsp.bz2 files found in fastDL: " + uniqueBspFiles.Count);
 				foreach (string file in uniqueBspFiles)
 				{
 					string mapName = file.Replace(".bsp.bz2", "");
@@ -124,11 +123,7 @@ namespace MapDownloader
 
 				if (toDownloadCount != 0)
 				{
-					if (toDownloadCount == 1)
-						txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " map from the fastDL, marking it for download...");
-					else
-						txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " maps from the fastDL, marking them for download...");
-
+					txtOutput.AppendText(Environment.NewLine + "Maps directory incomplete compared to fastDL, marking missing maps for download...");
 					foreach (string file in toDownloadList)
 						queue.Enqueue(file);
 
@@ -226,7 +221,10 @@ namespace MapDownloader
 
 		private void btnMain_Click_Stop(object sender, EventArgs e)
 		{
-			txtOutput.AppendText(Environment.NewLine + "Stop request received, process will stop after the current map is finished");
+			txtOutput.AppendText(Environment.NewLine + "-------------------------------------------------------");
+			txtOutput.AppendText(Environment.NewLine + "Stopping download request received...");
+			txtOutput.AppendText(Environment.NewLine + "Process will stop after the current map is finished");
+			txtOutput.AppendText(Environment.NewLine + "-------------------------------------------------------");
 			btnMain.Enabled = false;
 			queue.Clear();
 		}
