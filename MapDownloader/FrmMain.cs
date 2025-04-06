@@ -63,8 +63,6 @@ namespace MapDownloader
 			ToggleMode(false);
 			processed = 0;
 
-			string[] mapList;
-			List<string> realMapList = new List<string>();
 			List<string> downloadedMapList = new List<string>();
 			List<string> toDownloadList = new List<string>();
 			FileInfo[] mapFiles;
@@ -74,11 +72,10 @@ namespace MapDownloader
 			try
 			{
 				ServicePointManager.ServerCertificateValidationCallback += (o, certificate, chain, errors) => true;
-				mapList = client.DownloadString(Global.maplistUrl).Split(',');
 			}
 			catch (WebException)
 			{
-				txtOutput.AppendText("ERROR: Invalid map list URL provided");
+				txtOutput.AppendText("ERROR: Invalid fastDL URL provided");
 				ToggleMode(true);
 				return;
 			}
@@ -95,22 +92,24 @@ namespace MapDownloader
 			}
 
 			foreach (FileInfo file in mapFiles)
-				downloadedMapList.Add(file.Name.Split('.')[0].ToLower());
+				downloadedMapList.add(file.Name.Split('.')[0].ToLower());
 
-			foreach (string rawMap in mapList)
+			// Logic for dl all fastdl maps
+			WebClient client = new WebClient();
+			string[] fastdlFiles = client.DownloadString(Global.fastdlUrl).Split('\n');
+
+			foreach (string rawFile in fastdlFiles)
 			{
-				string map = rawMap.Replace("\r\n", "").Replace("\n", "");
+				string file = rawFile.Replace("\r\n", "").Replace("\n", "");
 
-				if (!map.Equals(""))
+				if (!file.Equals(""))
 				{
-					realMapList.Add(map);
-
-					if (!downloadedMapList.Contains(map.Replace("$", "").ToLower()))
-						toDownloadList.Add(map);
+					if (!downloadedMapList.Contains(file.Replace("$", "").ToLower()))
+						toDownloadList.Add(file);
 				}
 			}
 
-			txtOutput.AppendText(realMapList.Count + " total maps found in server map list");
+			txtOutput.AppendText("Total files found in fastDL: " + fastdlFiles.Length);
 
 			toDownloadCount = toDownloadList.Count;
 			prgDownload.Maximum = toDownloadCount;
@@ -120,12 +119,12 @@ namespace MapDownloader
 			if (toDownloadCount != 0)
 			{
 				if (toDownloadCount == 1)
-					txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " map from the map list, marking it for download...");
+					txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " map from the fastDL, marking it for download...");
 				else
-					txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " maps from the map list, marking them for download...");
+					txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " maps from the fastDL, marking them for download...");
 
-				foreach (string map in toDownloadList)
-					queue.Enqueue(map);
+				foreach (string file in toDownloadList)
+					queue.Enqueue(file);
 
 				Download();
 			}
