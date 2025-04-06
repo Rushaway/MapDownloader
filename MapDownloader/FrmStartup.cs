@@ -84,7 +84,6 @@ namespace MapDownloader
 			{
 				Server selectedServer = serverList[lbServers.SelectedIndex];
 				txtFastdlUrl.Text = selectedServer.FastDlUrl;
-				txtMaplistUrl.Text = selectedServer.MaplistUrl;
 			}
 		}
 
@@ -97,7 +96,6 @@ namespace MapDownloader
 			}
 			
 			Global.fastdlUrl = txtFastdlUrl.Text;
-			Global.maplistUrl = txtMaplistUrl.Text;
 			
 			FrmMain frmMain = new FrmMain();
 			this.Hide();
