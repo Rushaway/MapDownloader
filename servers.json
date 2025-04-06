@@ -2,8 +2,14 @@
 	"servers":
 	[
 		{
-			"name": "NiDE Zombie Escape",
+			"name": "NiDE.GG - Zombie Escape",
 			"fastDL": "https://fastdl.nide.gg/css_ze/maps/",
+			"appID": "240",
+			"mapsDirectory": "\\cstrike\\download\\maps\\"
+		},
+		{
+			"name": "NiDE.GG - Zombie Revival",
+			"fastDL": "https://fastdl.nide.gg/css_zr/maps/",
 			"appID": "240",
 			"mapsDirectory": "\\cstrike\\download\\maps\\"
 		}
