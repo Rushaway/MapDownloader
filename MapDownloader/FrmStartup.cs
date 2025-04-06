@@ -38,7 +38,7 @@ namespace MapDownloader
 		{
 			try
 			{
-				string serversUrl = "https://raw.githubusercontent.com/NiDE-gg/MapDownloader/master/servers.json";
+				string serversUrl = "https://github.com/Rushaway/MapDownloader/blob/master/servers.json";
 				
 				string response = await client.GetStringAsync(serversUrl);
 				
