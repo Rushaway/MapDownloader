@@ -3,7 +3,6 @@
 	[
 		{
 			"name": "NiDE Zombie Escape",
-			"mapList": "https://s3.cloud.cmer.fr/auto-mapdownloader-ze/auto-mapdownloader-ze.csv",
 			"fastDL": "https://fastdl.nide.gg/css_ze/maps/",
 			"appID": "240",
 			"mapsDirectory": "\\cstrike\\download\\maps\\"
