@@ -86,23 +86,18 @@ namespace MapDownloader
 			{
 				string response = await client.GetStringAsync(Global.fastdlUrl);
 				
-				// Utiliser un HashSet pour éliminer les doublons
 				HashSet<string> bspFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 				string[] lines = response.Split('\n');
 				
-				// Afficher les 10 premières lignes pour le débogage
 				txtOutput.AppendText("Analyzing FastDL index page...");
 				
 				foreach (string line in lines)
 				{
-					// Rechercher les lignes contenant .bsp.bz2
 					if (line.Contains(".bsp.bz2"))
 					{
-						// Extraire le nom du fichier
 						string fileName = ExtractFileNameFromHtmlLine(line);
 						if (!string.IsNullOrEmpty(fileName))
 						{
-							// Vérifier que c'est bien un fichier .bsp.bz2 et qu'il semble être un nom de carte valide
 							if (fileName.EndsWith(".bsp.bz2") && IsValidMapName(fileName))
 							{
 								bspFiles.Add(fileName);
@@ -110,14 +105,9 @@ namespace MapDownloader
 						}
 					}
 				}
-				
-				// Convertir le HashSet en liste pour le traitement
+
 				List<string> uniqueBspFiles = new List<string>(bspFiles);
-				
-				// Afficher les fichiers trouvés
 				txtOutput.AppendText(Environment.NewLine + "Total unique .bsp.bz2 files found in fastDL: " + uniqueBspFiles.Count);
-				
-				// Vérifier quels fichiers doivent être téléchargés
 				foreach (string file in uniqueBspFiles)
 				{
 					string mapName = file.Replace(".bsp.bz2", "");
@@ -159,18 +149,14 @@ namespace MapDownloader
 
 		private string ExtractFileNameFromHtmlLine(string line)
 		{
-			// Rechercher les fichiers .bsp.bz2
 			int bspIndex = line.IndexOf(".bsp.bz2");
 			if (bspIndex > 0)
 			{
-				// Vérifier si la ligne contient des balises HTML avec href
 				if (line.Contains("href="))
 				{
-					// Format avec balise HTML
 					int hrefIndex = line.IndexOf("href=");
 					int startQuote = -1;
 					
-					// Chercher la citation après href=
 					if (line.IndexOf('"', hrefIndex) > hrefIndex)
 						startQuote = line.IndexOf('"', hrefIndex);
 					else if (line.IndexOf('\'', hrefIndex) > hrefIndex)
@@ -185,24 +171,16 @@ namespace MapDownloader
 						{
 							string href = line.Substring(startQuote + 1, endQuote - startQuote - 1);
 							
-							// Si l'href contient le chemin complet, extraire juste le nom du fichier
 							if (href.Contains("/"))
-							{
 								href = href.Substring(href.LastIndexOf('/') + 1);
-							}
 							
-							// Vérifier que l'href contient .bsp.bz2
 							if (href.Contains(".bsp.bz2"))
-							{
 								return href;
-							}
 						}
 					}
 				}
 				else
 				{
-					// Format sans balise HTML (comme dans votre exemple)
-					// Trouver le début du nom de fichier en cherchant le dernier espace avant .bsp.bz2
 					int startIndex = 0;
 					for (int i = bspIndex - 1; i >= 0; i--)
 					{
@@ -213,10 +191,7 @@ namespace MapDownloader
 						}
 					}
 					
-					// Extraire le nom du fichier
 					string fileName = line.Substring(startIndex, bspIndex + 8 - startIndex).Trim();
-					
-					// Vérifier que le nom ne contient pas de caractères HTML
 					if (!fileName.Contains("<") && !fileName.Contains(">"))
 					{
 						return fileName;
@@ -227,43 +202,25 @@ namespace MapDownloader
 			return null;
 		}
 
-		// Fonction pour vérifier si un nom de fichier semble être une carte valide
 		private bool IsValidMapName(string fileName)
 		{
-			// Vérifier que le nom se termine par .bsp.bz2
 			if (!fileName.EndsWith(".bsp.bz2"))
 				return false;
 				
-			// Enlever l'extension
 			string mapName = fileName.Replace(".bsp.bz2", "");
 			
-			// Vérifier que le nom n'est pas vide
 			if (string.IsNullOrWhiteSpace(mapName))
 				return false;
 				
-			// Vérifier que le nom ne contient pas de caractères HTML
 			if (mapName.Contains("<") || mapName.Contains(">") || mapName.Contains("&"))
 				return false;
 				
-			// Vérifier que le nom ne contient pas de caractères spéciaux non valides pour un nom de fichier
 			foreach (char c in Path.GetInvalidFileNameChars())
 			{
 				if (mapName.Contains(c))
 					return false;
 			}
-			
-			// Vérifier que le nom commence généralement par "ze_" (pour Zombie Escape) ou a un format de nom de carte
-			// Cette vérification peut être adaptée selon vos besoins spécifiques
-			if (!mapName.StartsWith("ze_") && !mapName.StartsWith("cs_") && !mapName.StartsWith("de_") && 
-				!mapName.StartsWith("as_") && !mapName.StartsWith("aim_") && !mapName.StartsWith("surf_") && 
-				!mapName.StartsWith("bhop_") && !mapName.StartsWith("kz_") && !mapName.StartsWith("mg_") && 
-				!mapName.StartsWith("jb_") && !mapName.StartsWith("ba_") && !mapName.StartsWith("fy_"))
-			{
-				// Si le nom ne commence pas par un préfixe standard, vérifier qu'il a au moins une structure de nom de carte
-				if (!mapName.Contains("_"))
-					return false;
-			}
-			
+
 			return true;
 		}
 
@@ -280,19 +237,17 @@ namespace MapDownloader
 			{
 				currentMap = queue.Dequeue();
 				
-				// Nettoyer le nom de la carte de tout préfixe HTML
 				if (currentMap.Contains("href="))
 				{
 					currentMap = currentMap.Substring(currentMap.IndexOf("href=") + 6);
 				}
 				
-				currentCompressed = true; // Toujours compressé pour les .bsp.bz2
+				currentCompressed = true;
 				
 				txtOutput.AppendText(Environment.NewLine + "Downloading " + currentMap);
 				
 				try
 				{
-					// Assurez-vous que l'URL est correctement formatée
 					string fileUrl = Global.fastdlUrl;
 					if (!fileUrl.EndsWith("/"))
 						fileUrl += "/";
