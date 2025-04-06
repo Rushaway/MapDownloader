@@ -70,20 +70,6 @@ namespace MapDownloader
 
 			try
 			{
-				// Note: HttpClient handles certificate validation differently
-				// If you need to bypass certificate validation, use:
-				// var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
-				// client = new HttpClient(handler);
-			}
-			catch (Exception ex)
-			{
-				txtOutput.AppendText("ERROR: " + ex.Message);
-				ToggleMode(true);
-				return;
-			}
-
-			try
-			{
 				mapFiles = new DirectoryInfo(txtMapsDir.Text).GetFiles("*.bsp");
 			}
 			catch (Exception)
@@ -96,24 +82,39 @@ namespace MapDownloader
 			foreach (FileInfo file in mapFiles)
 				downloadedMapList.Add(file.Name.Split('.')[0].ToLower());
 
-			// Logic for dl all fastdl maps
 			try
 			{
 				string response = await client.GetStringAsync(Global.fastdlUrl);
-				string[] fastdlFiles = response.Split('\n');
-
-				foreach (string rawFile in fastdlFiles)
+				
+				// Extraire les noms de fichiers .bsp.bz2 de la page d'index
+				List<string> bspFiles = new List<string>();
+				string[] lines = response.Split('\n');
+				
+				foreach (string line in lines)
 				{
-					string file = rawFile.Replace("\r\n", "").Replace("\n", "");
-
-					if (!file.Equals(""))
+					// Rechercher les lignes contenant .bsp.bz2
+					if (line.Contains(".bsp.bz2"))
 					{
-						if (!downloadedMapList.Contains(file.Replace("$", "").ToLower()))
-							toDownloadList.Add(file);
+						// Extraire le nom du fichier
+						string fileName = ExtractFileNameFromHtmlLine(line);
+						if (!string.IsNullOrEmpty(fileName))
+						{
+							bspFiles.Add(fileName);
+						}
 					}
 				}
-
-				txtOutput.AppendText("Total files found in fastDL: " + fastdlFiles.Length);
+				
+				txtOutput.AppendText("Total .bsp.bz2 files found in fastDL: " + bspFiles.Count);
+				
+				// Vérifier quels fichiers doivent être téléchargés
+				foreach (string file in bspFiles)
+				{
+					string mapName = file.Replace(".bsp.bz2", "");
+					if (!downloadedMapList.Contains(mapName.ToLower()))
+					{
+						toDownloadList.Add(mapName);
+					}
+				}
 
 				toDownloadCount = toDownloadList.Count;
 				prgDownload.Maximum = toDownloadCount;
@@ -145,6 +146,40 @@ namespace MapDownloader
 			}
 		}
 
+		// Fonction pour extraire le nom de fichier d'une ligne HTML
+		private string ExtractFileNameFromHtmlLine(string line)
+		{
+			// Rechercher les fichiers .bsp.bz2
+			int bspIndex = line.IndexOf(".bsp.bz2");
+			if (bspIndex > 0)
+			{
+				// Trouver le début du nom de fichier
+				int startIndex = line.LastIndexOf('>', bspIndex);
+				if (startIndex >= 0)
+				{
+					startIndex++; // Avancer après le '>'
+				}
+				else
+				{
+					// Si pas de balise HTML, chercher un espace ou une tabulation
+					startIndex = 0;
+					for (int i = 0; i < bspIndex; i++)
+					{
+						if (char.IsWhiteSpace(line[i]))
+						{
+							startIndex = i + 1;
+						}
+					}
+				}
+				
+				// Extraire le nom du fichier
+				string fileName = line.Substring(startIndex, bspIndex + 8 - startIndex).Trim();
+				return fileName;
+			}
+			
+			return null;
+		}
+
 		private void btnMain_Click_Stop(object sender, EventArgs e)
 		{
 			txtOutput.AppendText(Environment.NewLine + "Stop request received, process will stop after the current map is finished");
@@ -157,24 +192,21 @@ namespace MapDownloader
 			if (queue.Count > 0)
 			{
 				currentMap = queue.Dequeue();
-
-				if (currentMap.StartsWith("$"))
-				{
-					currentMap = currentMap.Replace("$", "");
-					currentCompressed = false;
-				}
-				else
-				{
-					currentCompressed = true;
-				}
-
+				currentCompressed = true; // Toujours compressé pour les .bsp.bz2
+				
 				txtOutput.AppendText(Environment.NewLine + "Downloading " + currentMap);
-
+				
 				try
 				{
-					string fileUrl = Global.fastdlUrl + currentMap + (currentCompressed ? ".bsp.bz2" : ".bsp");
-					string filePath = txtMapsDir.Text + currentMap + (currentCompressed ? ".bsp.bz2" : ".bsp");
-
+					// Assurez-vous que l'URL est correctement formatée
+					string fileUrl = Global.fastdlUrl;
+					if (!fileUrl.EndsWith("/"))
+						fileUrl += "/";
+						
+					fileUrl += currentMap + ".bsp.bz2";
+					
+					string filePath = txtMapsDir.Text + currentMap + ".bsp.bz2";
+					
 					using (var response = await client.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
 					{
 						response.EnsureSuccessStatusCode();
