@@ -1,10 +1,10 @@
-﻿using ICSharpCode.SharpZipLib.BZip2;
+using ICSharpCode.SharpZipLib.BZip2;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -13,7 +13,7 @@ namespace MapDownloader
 {
 	public partial class FrmMain : Form
 	{
-		private WebClient client = new WebClient();
+		private HttpClient client = new HttpClient();
 		private Queue<string> queue = new Queue<string>();
 		private bool running = false;
 		private int processed = 0;
@@ -24,7 +24,6 @@ namespace MapDownloader
 		public FrmMain()
 		{
 			InitializeComponent();
-			client.DownloadFileCompleted += DownloadFinished;
 		}
 
 		private void FrmMain_Load(object sender, EventArgs e)
@@ -58,7 +57,7 @@ namespace MapDownloader
 				txtMapsDir.Text = dialog.SelectedPath + "\\";
 		}
 
-		private void btnMain_Click_Download(object sender, EventArgs e)
+		private async void btnMain_Click_Download(object sender, EventArgs e)
 		{
 			ToggleMode(false);
 			processed = 0;
@@ -71,11 +70,14 @@ namespace MapDownloader
 
 			try
 			{
-				ServicePointManager.ServerCertificateValidationCallback += (o, certificate, chain, errors) => true;
+				// Note: HttpClient handles certificate validation differently
+				// If you need to bypass certificate validation, use:
+				// var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
+				// client = new HttpClient(handler);
 			}
-			catch (WebException)
+			catch (Exception ex)
 			{
-				txtOutput.AppendText("ERROR: Invalid fastDL URL provided");
+				txtOutput.AppendText("ERROR: " + ex.Message);
 				ToggleMode(true);
 				return;
 			}
@@ -92,45 +94,53 @@ namespace MapDownloader
 			}
 
 			foreach (FileInfo file in mapFiles)
-				downloadedMapList.add(file.Name.Split('.')[0].ToLower());
+				downloadedMapList.Add(file.Name.Split('.')[0].ToLower());
 
 			// Logic for dl all fastdl maps
-			WebClient client = new WebClient();
-			string[] fastdlFiles = client.DownloadString(Global.fastdlUrl).Split('\n');
-
-			foreach (string rawFile in fastdlFiles)
+			try
 			{
-				string file = rawFile.Replace("\r\n", "").Replace("\n", "");
+				string response = await client.GetStringAsync(Global.fastdlUrl);
+				string[] fastdlFiles = response.Split('\n');
 
-				if (!file.Equals(""))
+				foreach (string rawFile in fastdlFiles)
 				{
-					if (!downloadedMapList.Contains(file.Replace("$", "").ToLower()))
-						toDownloadList.Add(file);
+					string file = rawFile.Replace("\r\n", "").Replace("\n", "");
+
+					if (!file.Equals(""))
+					{
+						if (!downloadedMapList.Contains(file.Replace("$", "").ToLower()))
+							toDownloadList.Add(file);
+					}
+				}
+
+				txtOutput.AppendText("Total files found in fastDL: " + fastdlFiles.Length);
+
+				toDownloadCount = toDownloadList.Count;
+				prgDownload.Maximum = toDownloadCount;
+				prgDownload.Value = 0;
+				prgDownload.Step = 1;
+
+				if (toDownloadCount != 0)
+				{
+					if (toDownloadCount == 1)
+						txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " map from the fastDL, marking it for download...");
+					else
+						txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " maps from the fastDL, marking them for download...");
+
+					foreach (string file in toDownloadList)
+						queue.Enqueue(file);
+
+					await DownloadAsync();
+				}
+				else
+				{
+					txtOutput.AppendText(Environment.NewLine + "All maps already downloaded and up to date!");
+					ToggleMode(true);
 				}
 			}
-
-			txtOutput.AppendText("Total files found in fastDL: " + fastdlFiles.Length);
-
-			toDownloadCount = toDownloadList.Count;
-			prgDownload.Maximum = toDownloadCount;
-			prgDownload.Value = 0;
-			prgDownload.Step = 1;
-
-			if (toDownloadCount != 0)
+			catch (Exception ex)
 			{
-				if (toDownloadCount == 1)
-					txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " map from the fastDL, marking it for download...");
-				else
-					txtOutput.AppendText(Environment.NewLine + "Maps directory missing " + toDownloadCount + " maps from the fastDL, marking them for download...");
-
-				foreach (string file in toDownloadList)
-					queue.Enqueue(file);
-
-				Download();
-			}
-			else
-			{
-				txtOutput.AppendText(Environment.NewLine + "All maps already downloaded and up to date!");
+				txtOutput.AppendText(Environment.NewLine + "ERROR: " + ex.Message);
 				ToggleMode(true);
 			}
 		}
@@ -142,7 +152,7 @@ namespace MapDownloader
 			queue.Clear();
 		}
 
-		private void Download()
+		private async Task DownloadAsync()
 		{
 			if (queue.Count > 0)
 			{
@@ -162,15 +172,26 @@ namespace MapDownloader
 
 				try
 				{
-					if (currentCompressed)
-						client.DownloadFileAsync(new Uri(Global.fastdlUrl + currentMap + ".bsp.bz2"), txtMapsDir.Text + currentMap + ".bsp.bz2");
-					else
-						client.DownloadFileAsync(new Uri(Global.fastdlUrl + currentMap + ".bsp"), txtMapsDir.Text + currentMap + ".bsp");
+					string fileUrl = Global.fastdlUrl + currentMap + (currentCompressed ? ".bsp.bz2" : ".bsp");
+					string filePath = txtMapsDir.Text + currentMap + (currentCompressed ? ".bsp.bz2" : ".bsp");
+
+					using (var response = await client.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead))
+					{
+						response.EnsureSuccessStatusCode();
+						using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+						using (var stream = await response.Content.ReadAsStreamAsync())
+						{
+							await stream.CopyToAsync(fileStream);
+						}
+					}
+
+					await ProcessDownloadedFileAsync();
 				}
-				catch (UriFormatException)
+				catch (Exception ex)
 				{
-					txtOutput.AppendText(Environment.NewLine + "ERROR: Invalid FastDL URL provided");
-					ToggleMode(true);
+					txtOutput.AppendText(Environment.NewLine + currentMap + " download failed: " + ex.Message);
+					prgDownload.PerformStep();
+					await DownloadAsync();
 				}
 			}
 			else
@@ -188,35 +209,36 @@ namespace MapDownloader
 			}
 		}
 
-		private async void DownloadFinished(object sender, AsyncCompletedEventArgs e)
+		private async Task ProcessDownloadedFileAsync()
 		{
 			FileInfo compressedFile = new FileInfo(txtMapsDir.Text + currentMap + ".bsp.bz2");
 
 			try
 			{
-				string x = e.Error.Message;
-
-				txtOutput.AppendText(Environment.NewLine + currentMap + " download failed");
-			}
-			catch (Exception)
-			{
 				if (currentCompressed)
 				{
-					FileStream compressedStream = compressedFile.OpenRead();
-					FileStream decompressedStream = File.Create(txtMapsDir.Text + currentMap + ".bsp");
-
-					txtOutput.AppendText(Environment.NewLine + "Extracting " + currentMap);
-					await Task.Run(() => BZip2.Decompress(compressedStream, decompressedStream, true));
-					processed++;
+					using (FileStream compressedStream = compressedFile.OpenRead())
+					using (FileStream decompressedStream = File.Create(txtMapsDir.Text + currentMap + ".bsp"))
+					{
+						txtOutput.AppendText(Environment.NewLine + "Extracting " + currentMap);
+						await Task.Run(() => BZip2.Decompress(compressedStream, decompressedStream, true));
+					}
 				}
+
+				processed++;
+				prgDownload.PerformStep();
+
+				if (compressedFile.Exists)
+					compressedFile.Delete();
+
+				await DownloadAsync();
 			}
-
-			prgDownload.PerformStep();
-
-			if (compressedFile.Exists)
-				compressedFile.Delete();
-
-			Download();
+			catch (Exception ex)
+			{
+				txtOutput.AppendText(Environment.NewLine + currentMap + " extraction failed: " + ex.Message);
+				prgDownload.PerformStep();
+				await DownloadAsync();
+			}
 		}
 
 		private void ToggleMode(bool defaultState)
