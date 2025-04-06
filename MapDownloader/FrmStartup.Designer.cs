@@ -32,8 +32,6 @@
 			txtFastdlUrl = new System.Windows.Forms.TextBox();
 			lblFastdlUrl = new System.Windows.Forms.Label();
 			btnStart = new System.Windows.Forms.Button();
-			txtMaplistUrl = new System.Windows.Forms.TextBox();
-			lblMaplistUrl = new System.Windows.Forms.Label();
 			lbServers = new System.Windows.Forms.ListBox();
 			SuspendLayout();
 			// 
@@ -66,24 +64,6 @@
 			btnStart.UseVisualStyleBackColor = true;
 			btnStart.Click += btnStart_Click;
 			// 
-			// txtMaplistUrl
-			// 
-			txtMaplistUrl.Location = new System.Drawing.Point(108, 242);
-			txtMaplistUrl.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			txtMaplistUrl.Name = "txtMaplistUrl";
-			txtMaplistUrl.Size = new System.Drawing.Size(268, 23);
-			txtMaplistUrl.TabIndex = 3;
-			// 
-			// lblMaplistUrl
-			// 
-			lblMaplistUrl.AutoSize = true;
-			lblMaplistUrl.Location = new System.Drawing.Point(14, 245);
-			lblMaplistUrl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-			lblMaplistUrl.Name = "lblMaplistUrl";
-			lblMaplistUrl.Size = new System.Drawing.Size(79, 15);
-			lblMaplistUrl.TabIndex = 2;
-			lblMaplistUrl.Text = "Map List URL:";
-			// 
 			// lbServers
 			// 
 			lbServers.FormattingEnabled = true;
@@ -101,8 +81,6 @@
 			AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			ClientSize = new System.Drawing.Size(391, 321);
 			Controls.Add(lbServers);
-			Controls.Add(txtMaplistUrl);
-			Controls.Add(lblMaplistUrl);
 			Controls.Add(txtFastdlUrl);
 			Controls.Add(lblFastdlUrl);
 			Controls.Add(btnStart);
@@ -123,8 +101,6 @@
 		private System.Windows.Forms.TextBox txtFastdlUrl;
 		private System.Windows.Forms.Label lblFastdlUrl;
 		private System.Windows.Forms.Button btnStart;
-		private System.Windows.Forms.TextBox txtMaplistUrl;
-		private System.Windows.Forms.Label lblMaplistUrl;
 		private System.Windows.Forms.ListBox lbServers;
 	}
 }
