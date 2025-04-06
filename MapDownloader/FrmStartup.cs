@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -40,29 +41,28 @@ namespace MapDownloader
 				string serversUrl = "https://raw.githubusercontent.com/NiDE-gg/MapDownloader/master/servers.json";
 				
 				string response = await client.GetStringAsync(serversUrl);
-				string[] lines = response.Split('\n');
 				
-				serverList.Clear();
-				lbServers.Items.Clear();
-				
-				foreach (string line in lines)
+				using (JsonDocument doc = JsonDocument.Parse(response))
 				{
-					string trimmedLine = line.Trim();
-					if (!string.IsNullOrEmpty(trimmedLine) && !trimmedLine.StartsWith("#"))
+					JsonElement root = doc.RootElement;
+					JsonElement serversArray = root.GetProperty("servers");
+					
+					serverList.Clear();
+					lbServers.Items.Clear();
+					
+					foreach (JsonElement serverElement in serversArray.EnumerateArray())
 					{
-						string[] parts = trimmedLine.Split('|');
-						if (parts.Length >= 3)
+						Server server = new Server
 						{
-							Server server = new Server
-							{
-								Name = parts[0].Trim(),
-								FastDlUrl = parts[1].Trim(),
-								MaplistUrl = parts.Length > 2 ? parts[2].Trim() : ""
-							};
-							
-							serverList.Add(server);
-							lbServers.Items.Add(server.Name);
-						}
+							Name = serverElement.GetProperty("name").GetString(),
+							FastDlUrl = serverElement.GetProperty("fastDL").GetString(),
+							MaplistUrl = serverElement.GetProperty("mapList").GetString(),
+							AppID = serverElement.GetProperty("appID").GetString(),
+							MapsDirectory = serverElement.GetProperty("mapsDirectory").GetString()
+						};
+						
+						serverList.Add(server);
+						lbServers.Items.Add(server.Name);
 					}
 				}
 				
@@ -79,11 +79,13 @@ namespace MapDownloader
 
 		private void lbServers_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			// Vérifier que l'index sélectionné est valide
 			if (lbServers.SelectedIndex >= 0 && lbServers.SelectedIndex < serverList.Count)
 			{
 				Server selectedServer = serverList[lbServers.SelectedIndex];
 				txtFastdlUrl.Text = selectedServer.FastDlUrl;
+				
+				Global.appID = selectedServer.AppID;
+				Global.mapsDirectory = selectedServer.MapsDirectory;
 			}
 		}
 
@@ -108,6 +110,7 @@ namespace MapDownloader
 	{
 		public string Name { get; set; }
 		public string FastDlUrl { get; set; }
-		public string MaplistUrl { get; set; }
+		public string AppID { get; set; }
+		public string MapsDirectory { get; set; }
 	}
 }
