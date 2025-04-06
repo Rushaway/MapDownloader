@@ -56,7 +56,6 @@ namespace MapDownloader
 						{
 							Name = serverElement.GetProperty("name").GetString(),
 							FastDlUrl = serverElement.GetProperty("fastDL").GetString(),
-							MaplistUrl = serverElement.GetProperty("mapList").GetString(),
 							AppID = serverElement.GetProperty("appID").GetString(),
 							MapsDirectory = serverElement.GetProperty("mapsDirectory").GetString()
 						};
