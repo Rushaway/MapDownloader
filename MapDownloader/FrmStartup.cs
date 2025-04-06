@@ -15,7 +15,6 @@ namespace MapDownloader
 	public partial class FrmStartup : Form
 	{
 		private WebClient client = new WebClient();
-		private List<string> serverMapLists = new List<string>();
 		private List<string> serverFastDLs = new List<string>();
 		private List<string> serverAppIDs = new List<string>();
 		private List<string> serverMapDirectories = new List<string>();
@@ -47,7 +46,6 @@ namespace MapDownloader
 				foreach (JsonElement server in serversElement.EnumerateArray())
 				{
 					lbServers.Items.Add(server.GetProperty("name").GetString());
-					serverMapLists.Add(server.GetProperty("mapList").GetString());
 					serverFastDLs.Add(server.GetProperty("fastDL").GetString());
 					serverAppIDs.Add(server.GetProperty("appID").GetString());
 					serverMapDirectories.Add(server.GetProperty("mapsDirectory").GetString());
@@ -57,14 +55,13 @@ namespace MapDownloader
 
 		private void btnStart_Click(object sender, EventArgs e)
 		{
-			if (String.Equals(txtFastdlUrl.Text, "") || String.Equals(txtMaplistUrl.Text, "") || lbServers.SelectedIndex == -1)
+			if (String.Equals(txtFastdlUrl.Text, "") || lbServers.SelectedIndex == -1)
 			{
 				MessageBox.Show("You must select a server!", "Error");
 				return;
 			}
 
 			Global.fastdlUrl = txtFastdlUrl.Text;
-			Global.maplistUrl = txtMaplistUrl.Text;
 			Global.appID = serverAppIDs[lbServers.SelectedIndex];
 			Global.mapsDirectory = serverMapDirectories[lbServers.SelectedIndex];
 
@@ -76,9 +73,7 @@ namespace MapDownloader
 
 		private void lbServers_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			txtMaplistUrl.Text = serverMapLists[lbServers.SelectedIndex];
 			txtFastdlUrl.Text = serverFastDLs[lbServers.SelectedIndex];
-			txtMaplistUrl.SelectionStart = 0;
 			txtFastdlUrl.SelectionStart = 0;
 		}
 	}
